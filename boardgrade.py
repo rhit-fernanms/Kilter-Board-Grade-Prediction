@@ -30,5 +30,11 @@ difficulties = {
 if len(sys.argv) <= 1:
   print("usage: boardgrade.py [grade number] to get the grade associated with a number")
 else:
-  inputNum = int(sys.argv[1])
-  print(f"{difficulties[inputNum]}")
+  try:
+    inputNum = int(sys.argv[1])
+    if inputNum in difficulties:
+      print(f"{difficulties[inputNum]}")
+    else:
+      print("Difficulty is not valid")
+  except:
+    print("Please enter an integer")
