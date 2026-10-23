@@ -33,7 +33,7 @@ for (holdId, x, y) in holds_45:
 
     center = (xPixel, yPixel)
 
-    print(f"{holdId}: ({xPixel}, {yPixel}),")
+    print(f"\"p{holdId}\": ({xPixel}, {yPixel}),")
 for (holdId, x, y) in holds_46:
     if x <= edgeLeft or x >= edgeRight or y <= edgeBottom or y >= edgeTop:
         continue
@@ -42,7 +42,7 @@ for (holdId, x, y) in holds_46:
 
     center = (xPixel, yPixel)
 
-    print(f"{holdId}: ({xPixel}, {yPixel}),")
+    print(f"\"p{holdId}\": ({xPixel}, {yPixel}),")
 
 print("}")
 
