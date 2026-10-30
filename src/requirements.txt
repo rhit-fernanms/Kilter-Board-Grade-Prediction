@@ -17,3 +17,5 @@ plotly[express]
 transformers
 anywidget
 umap-learn
+drawsvg
+resvg_py
