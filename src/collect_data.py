@@ -72,10 +72,10 @@ def collect_data(data_dir, preprocess: torchvision.transforms.Compose):
 
     # Use uniform random selection for validation set
     val_dataset = ImageDataset(torch.from_numpy(images_val), torch.from_numpy(angles_val), torch.from_numpy(grades_val))
-    val_loader = DataLoader(val_dataset, batch_size=len(images_val)) # Treat whole dataset as a batch; allows reuse of loops/code
+    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE) # calculates by batch, but will be aggregated to be as though it were a single batch
 
     test_dataset = ImageDataset(torch.from_numpy(images_test), torch.from_numpy(angles_test), torch.from_numpy(grades_test))
-    test_loader = DataLoader(test_dataset, batch_size=len(images_test))
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE) # calculates by batch, but will be aggregated to be as though it were a single batch
     
     return train_loader, val_loader, test_loader
     
@@ -109,12 +109,14 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
             outputs = model(images, angles)
             outputs_class = torch.argmax(outputs, dim=1)
             optimizer.zero_grad() 
-            loss = criterion(outputs, labels)
+            if isinstance(criterion, torch.nn.MSELoss): loss = criterion(outputs, labels.unsqueeze(1))
+            else: loss = criterion(outputs, labels)
             loss.backward() 
             optimizer.step()
             
             epoch_loss += loss.item() * len(images)
-            epoch_correct += (labels == outputs_class).sum().item()
+            if isinstance(criterion, torch.nn.MSELoss): epoch_correct += (labels.unsqueeze(1) == outputs.round()).sum().item()
+            else: epoch_correct += (labels == outputs_class).sum().item()
             # print(f'{epoch_correct:.1f} correct predictions during current epoch')
             num_batches += 1
 
@@ -127,23 +129,28 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
         model.eval()
         with torch.no_grad():
             val_correct = 0
-            for images, angles, labels in val_loader: # loads full validiaiton datset as a batch
+            val_loss = 0
+            for images, angles, labels in val_loader: 
                 images = images.to(device)
                 angles = angles.to(device)
                 labels = labels.to(device)
                 val_outputs = model(images, angles)
-                validation_loss = criterion(val_outputs, labels).item() 
+
+                if isinstance(criterion, torch.nn.MSELoss): val_loss += criterion(val_outputs, labels.unsqueeze(1)).item() * len(images)
+                else: val_loss += criterion(val_outputs, labels).item() * len(images)
                 val_outputs_class = torch.argmax(val_outputs, dim=1)
-                val_correct = (labels == val_outputs_class).sum().item()
-                validation_losses.append(validation_loss)
-            val_acc = val_correct / records
+                if isinstance(criterion, torch.nn.MSELoss): val_correct += (labels.unsqueeze(1) == val_outputs.round()).sum().item()
+                else: val_correct += (labels == val_outputs_class).sum().item()
+            val_loss = val_loss / len(val_loader.dataset)
+            validation_losses.append(val_loss)
+            val_acc = val_correct / len(val_loader.dataset)
             validation_accs.append(val_acc)
             
             
 
         # Save the model if this is the best validation loss so far
-        if validation_loss < best_validation_loss:
-            best_validation_loss = validation_loss
+        if val_loss < best_validation_loss:
+            best_validation_loss = val_loss
             best_validation_epoch = epoch
             torch.save(model.state_dict(), checkpoint_path)
             best_marker = ' *'
@@ -151,7 +158,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
             best_marker = ''
 
         # if epoch % (num_epochs / 10) == 0:
-        print(f'Epoch [{epoch}/{num_epochs}], Train Loss: {avg_loss:.5f}, Val Loss: {validation_loss:.5f}{best_marker}, Train Acc: {train_acc:.5f}, Validation Acc: {val_acc:.5f}')
+        print(f'Epoch [{epoch}/{num_epochs}], Train Loss: {avg_loss:.5f}, Val Loss: {val_loss:.5f}{best_marker}, Train Acc: {train_acc:.5f}, Validation Acc: {val_acc:.5f}')
 
     total_time = time.time() - training_start
     print(f'Average time per epoch: {total_time / num_epochs:.2f}s')
