@@ -1,8 +1,8 @@
 import drawsvg as draw
 import resvg_py
 
-image_1 = './images/45-1.png' 
-image_2 = './images/46-1.png'  
+image_1 = './product_layout_images/45-1.png' 
+image_2 = './product_layout_images/46-1.png'  
 
 scale = 0.2
 getCoords = {
@@ -517,10 +517,10 @@ def create_kilterboard_gui(holdSequence):
         y = coordinates[1]
         d.append(draw.Circle(x*scale, y*scale, 30*scale, stroke_width=6*scale, fill_opacity=0, stroke=color))
 
-create_kilterboard_gui("h1138p15h1632p15h1626p15h1581p12h1509p15h1563p13h1531p13h1534p15h1557p13h1591p15h1497p13h1551p13h1485p14h1586p15")
+create_kilterboard_gui("h1293p12h1351p12h1157p15h1356p13h1161p15h1357p13h1473p13h1466p15h1508p15h1422p13h1496p13h1238p15h1494p14h1549p14h1559p15h1417p15")
 # Save SVG to file
-image_dir = "./images/climbs/"
-png_file = 'h1138p15h1632p15h1626p15h1581p12h1509p15h1563p13h1531p13h1534p15h1557p13h1591p15h1497p13h1551p13h1485p14h1586p15.png'
+image_dir = "./"
+png_file = 'h1293p12h1351p12h1157p15h1356p13h1161p15h1357p13h1473p13h1466p15h1508p15h1422p13h1496p13h1238p15h1494p14h1549p14h1559p15h1417p15.png'
 
 
 # Convert SVG to PNG 

@@ -2,9 +2,10 @@ import csv
 import drawsvg as draw
 import resvg_py
 import re
+import time
 
-image_1 = './images/45-1.png' 
-image_2 = './images/46-1.png'  
+image_1 = './product_layout_images/45-1.png' 
+image_2 = './product_layout_images/46-1.png'  
 
 scale = 0.2
 getCoords = {
@@ -508,34 +509,43 @@ def create_kilterboard_png(holdSequence):
     for hold in holds: # in getCoords for test
         position = hold[0:5]
         role = hold[6:8]
-        # role = "12"
         color = role_colors[role]
         coordinates = getCoords[position] 
         x = coordinates[0]
         y = coordinates[1]
         d.append(draw.Circle(x*scale, y*scale, 30*scale, stroke_width=6*scale, fill_opacity=0, stroke=color))
+
     return d
 
-image_dir = "./images/climbs/"
+image_dir = "./data/images/"
 header = True
-i = 0
+c = 0
 with open('climbs_with_headers.csv', mode='r', newline='', encoding='utf-8') as file:
     reader = csv.reader(file)
+    now_time = time.time()
     for row in reader:
         if header:
             header = False
             continue
+
         # Columns are id,Name,Angle,Holds,Difficulty
-        d = create_kilterboard_png(row[3])
+        try:
+            d = create_kilterboard_png(row[3])
+        except:
+            print(f'ERROR: Ignored climb {row[0]}')
+            continue
+
         png_bytes = resvg_py.svg_to_bytes(svg_string=d.as_svg())
 
         file_name = "id="+row[0]+"_angle="+row[2]+"_grade="+row[4]
         png_file = file_name+".png"
         with open(image_dir + png_file, "wb") as f:
             f.write(png_bytes)
-        i = i+1
-        if(i > 100): break
-
-
         
+        c += 1
+        if c % 100 == 0:
+            temp_time = time.time()
+            time_per_100 = temp_time - now_time
+            now_time = time.time()
+            print(f"Images {100 * (c / 100 - 1)} to {c}: {time_per_100}")
 
