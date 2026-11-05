@@ -19,3 +19,4 @@ anywidget
 umap-learn
 drawsvg
 resvg_py
+kaleido

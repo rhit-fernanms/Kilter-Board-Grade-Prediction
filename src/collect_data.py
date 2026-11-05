@@ -2,6 +2,10 @@ import torch, torchvision, re, os
 import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler, BatchSampler
+from random import shuffle
+
+# Hyperparameters
+BATCH_SIZE = 64
 
 class ImageDataset(Dataset):
     def __init__(self, images, angles, grades):
@@ -17,31 +21,43 @@ class ImageDataset(Dataset):
 
 
 def collect_data(data_dir, preprocess: torchvision.transforms.Compose):
-    images, climb_ids, angles, labels = [], [], [], []
+    images, angles, grades = [], [], []
+    i = 0
     for filename in sorted(os.listdir(data_dir)):
         # Images are titled 'id=[id]_angle=[angle]_grade=[grade].png'
-        id, angle, grade = re.findall(r'id=(.+)_angle=(.+)_grade=(.+)\.png', filename)[0]
-        climb_ids.append(id)
+        id, angle, grade = re.findall(r'id=(.*)_angle=(.*)_grade=(.+)\.png', filename)[0]
+        if angle == '': # Some climbs don't have angle data
+            continue
+
         angles.append(int(angle))
-        labels.append(int(grade) - 10) # Standardize to [0, 22]
+        grades.append(int(grade) - 10) # Standardize to [0, 22]
         
         img = Image.open(os.path.join(data_dir, filename)).convert('RGB')
         images.append(preprocess(img).numpy())
+        
+        i += 1
+        if i % 1000 == 0:
+            print(f'{i} images processed')
+        if i == 10000: # Stop at 10000 images to save memory
+            break
+    
+    # Shuffle data before splitting
+    shuffled = list(zip(images, angles, grades))
+    shuffle(shuffled)
+    images, angles, grades = zip(*shuffled)
     
     images =  np.stack(images)
     angles = np.stack(angles)
-    grades = np.array(labels, dtype=np.int64)
-    
-    # TODO: shuffle data before splitting
+    grades = np.array(grades, dtype=np.int64)
 
-    # Separate train/val/test splits
-    images_train = images[:80]; angles_train = angles[:80]; grades_train = grades[:80]
-    images_val = images[80:]; angles_val = angles[80:]; grades_val = grades[80:]
+    # Separate train/val/test splits (70 / 15 / 15)
+    train_count = int(len(images) * 0.70)
+    val_count = int(len(images) * 0.15)
+    images_train = images[:train_count]; angles_train = angles[:train_count]; grades_train = grades[:train_count]
+    images_val = images[train_count:train_count + val_count]; angles_val = angles[train_count:train_count + val_count]; grades_val = grades[train_count:train_count + val_count]
+    images_test = images[train_count + val_count:]; angles_test = angles[train_count + val_count:]; grades_test = grades[train_count + val_count:]
     
     
-    
-    # Hyperparameters
-    batch_size = 64
 
     # Use a WeightedRandomSampler
     # SELECT COUNT(DISTINCT climbs.climbUuid) FROM climbs INNER JOIN climb_stats ON climb_stats.climbUuid = climbs.climbUuid WHERE ascentCount >= 5 AND climb_stats.product_layout_uuid = '10' AND currentDifficultyId >= 10 GROUP BY currentDifficultyId;
@@ -50,7 +66,7 @@ def collect_data(data_dir, preprocess: torchvision.transforms.Compose):
     class_weights = [0 if grade_counts[i] == 0 else 1 / grade_counts[i] for i in range(len(grade_counts))]
     train_weights = [class_weights[grades_train[i]] for i in range(len(grades_train))]
 
-    train_sampler = BatchSampler(WeightedRandomSampler(torch.DoubleTensor(train_weights), len(grades_train)), batch_size, drop_last=False)
+    train_sampler = BatchSampler(WeightedRandomSampler(torch.DoubleTensor(train_weights), len(grades_train)), BATCH_SIZE, drop_last=False)
     train_dataset = ImageDataset(torch.from_numpy(images_train), torch.from_numpy(angles_train), torch.from_numpy(grades_train))
     train_loader = DataLoader(train_dataset, batch_sampler=train_sampler)
 
@@ -58,16 +74,18 @@ def collect_data(data_dir, preprocess: torchvision.transforms.Compose):
     val_dataset = ImageDataset(torch.from_numpy(images_val), torch.from_numpy(angles_val), torch.from_numpy(grades_val))
     val_loader = DataLoader(val_dataset, batch_size=len(images_val)) # Treat whole dataset as a batch; allows reuse of loops/code
 
-    # test_loader = DataLoader(TensorDataset(torch.from_numpy(X_test), torch.from_numpy(Y_test)), batch_size=batch_size)
+    test_dataset = ImageDataset(torch.from_numpy(images_test), torch.from_numpy(angles_test), torch.from_numpy(grades_test))
+    test_loader = DataLoader(test_dataset, batch_size=len(images_test))
     
-    return train_loader, val_loader
+    return train_loader, val_loader, test_loader
     
     
 import plotly.graph_objects as go
+from plotly.offline import plot
 import time
     
 # Taken from Lesson 19
-def train_model(model, train_loader, val_loader, criterion, optimizer, device, num_epochs, checkpoint_path):
+def train_model(model, train_loader, val_loader, criterion, optimizer, device, num_epochs, checkpoint_path, graph_save_directory=None):
     """Train, keep the checkpoint with the lowest validation loss, and plot the losses."""
     training_losses = []
     validation_losses = []
@@ -132,8 +150,8 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
         else:
             best_marker = ''
 
-        if epoch % (num_epochs / 10) == 0:
-            print(f'Epoch [{epoch}/{num_epochs}], Train Loss: {avg_loss:.5f}, Val Loss: {validation_loss:.5f}{best_marker}, Train Acc: {train_acc:.5f}, Validation Acc: {val_acc:.5f}')
+        # if epoch % (num_epochs / 10) == 0:
+        print(f'Epoch [{epoch}/{num_epochs}], Train Loss: {avg_loss:.5f}, Val Loss: {validation_loss:.5f}{best_marker}, Train Acc: {train_acc:.5f}, Validation Acc: {val_acc:.5f}')
 
     total_time = time.time() - training_start
     print(f'Average time per epoch: {total_time / num_epochs:.2f}s')
@@ -144,11 +162,20 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
     fig1.add_trace(go.Scatter(x=list(range(len(training_losses))), y=training_losses, mode='lines', name='Training Loss'))
     fig1.add_trace(go.Scatter(x=list(range(len(validation_losses))), y=validation_losses, mode='lines', name='Validation Loss'))
     fig1.update_layout(title="Training and Validation Loss Over Time", xaxis_title="Epoch", yaxis_title="Loss")
-    fig1.show()
+    if graph_save_directory is None:
+        fig1.show()
+    else:
+        plot(fig1, filename=os.path.join(graph_save_directory, 'Loss.html'))
+    
     # Accuracy plot
     fig2 = go.Figure()
     fig2.add_trace(go.Scatter(x=list(range(len(training_accs))), y=training_accs, mode='lines', name='Training Accuracy'))
     fig2.add_trace(go.Scatter(x=list(range(len(validation_accs))), y=validation_accs, mode='lines', name='Validation Accuracy'))
     fig2.update_layout(title="Training and Validation Accuracy Over Time", xaxis_title="Epoch", yaxis_title="Accuracy")
-    fig2.show()
-    
+    if graph_save_directory is None:
+        fig2.show()
+    else:
+        plot(fig2, filename=os.path.join(graph_save_directory, 'Accuracy.html'))
+
+def test_best(test_loader, best_filename):
+    pass
