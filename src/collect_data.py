@@ -3,6 +3,7 @@ import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler, BatchSampler
 from random import shuffle
+import copy
 
 # Hyperparameters
 BATCH_SIZE = 64
@@ -152,14 +153,16 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
         if val_loss < best_validation_loss:
             best_validation_loss = val_loss
             best_validation_epoch = epoch
-            torch.save(model.state_dict(), checkpoint_path)
+            best_model = copy.deepcopy(model.state_dict())
+            
             best_marker = ' *'
         else:
             best_marker = ''
 
-        # if epoch % (num_epochs / 10) == 0:
-        print(f'Epoch [{epoch}/{num_epochs}], Train Loss: {avg_loss:.5f}, Val Loss: {val_loss:.5f}{best_marker}, Train Acc: {train_acc:.5f}, Validation Acc: {val_acc:.5f}')
+        if epoch % (num_epochs / 10) == 0:
+            print(f'Epoch [{epoch}/{num_epochs}], Train Loss: {avg_loss:.5f}, Val Loss: {val_loss:.5f}{best_marker}, Train Acc: {train_acc:.5f}, Validation Acc: {val_acc:.5f}')
 
+    torch.save(best_model, checkpoint_path)
     total_time = time.time() - training_start
     print(f'Average time per epoch: {total_time / num_epochs:.2f}s')
     print(f'Best validation loss: {best_validation_loss:.5f} (epoch {best_validation_epoch})')
