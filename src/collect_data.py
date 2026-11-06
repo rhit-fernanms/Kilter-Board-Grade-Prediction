@@ -92,6 +92,8 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
     validation_losses = []
     training_accs = []
     validation_accs = []
+    training_off_1 = []
+    validation_off_1 = []
     best_validation_loss = float('inf')
     best_validation_epoch = -1
     training_start = time.time()
@@ -101,6 +103,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
         model.train()
         epoch_loss = 0
         epoch_correct = 0
+        epoch_off_1 = 0
         num_batches = 0
         for images, angles, labels in train_loader:
             images = images.to(device)
@@ -116,21 +119,28 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
             optimizer.step()
             
             epoch_loss += loss.item() * len(images)
-            if isinstance(criterion, torch.nn.MSELoss): epoch_correct += (labels.unsqueeze(1) == outputs.round()).sum().item()
-            else: epoch_correct += (labels == outputs_class).sum().item()
+            if isinstance(criterion, torch.nn.MSELoss): 
+                epoch_correct += (labels.unsqueeze(1) == outputs.round()).sum().item()
+                epoch_off_1 += (abs(labels.unsqueeze(1) - outputs.round()) <= 1).sum().item()
+            else: 
+                epoch_correct += (labels == outputs_class).sum().item()
+                epoch_off_1 += (abs(labels - outputs_class) <= 1).sum().item()
             # print(f'{epoch_correct:.1f} correct predictions during current epoch')
             num_batches += 1
 
         avg_loss = epoch_loss / records
         train_acc = epoch_correct / records
+        train_off_1 = epoch_off_1 / records
         training_losses.append(avg_loss)
         training_accs.append(train_acc)
+        training_off_1.append(train_off_1)
 
         # Compute validation loss. Don't need gradients here.
         model.eval()
         with torch.no_grad():
             val_correct = 0
             val_loss = 0
+            val_off_1 = 0
             for images, angles, labels in val_loader: 
                 images = images.to(device)
                 angles = angles.to(device)
@@ -140,12 +150,19 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
                 if isinstance(criterion, torch.nn.MSELoss): val_loss += criterion(val_outputs, labels.unsqueeze(1)).item() * len(images)
                 else: val_loss += criterion(val_outputs, labels).item() * len(images)
                 val_outputs_class = torch.argmax(val_outputs, dim=1)
-                if isinstance(criterion, torch.nn.MSELoss): val_correct += (labels.unsqueeze(1) == val_outputs.round()).sum().item()
-                else: val_correct += (labels == val_outputs_class).sum().item()
+                if isinstance(criterion, torch.nn.MSELoss): 
+                    val_correct += (labels.unsqueeze(1) == val_outputs.round()).sum().item()
+                    val_off_1 += (abs(labels.unsqueeze(1) - val_outputs.round()) <= 1).sum().item()
+                else: 
+                    val_correct += (labels == val_outputs_class).sum().item()
+                    val_off_1 += (abs(labels - val_outputs_class) <= 1).sum().item()
+
             val_loss = val_loss / len(val_loader.dataset)
             validation_losses.append(val_loss)
             val_acc = val_correct / len(val_loader.dataset)
             validation_accs.append(val_acc)
+            val_off_1 = val_off_1 / len(val_loader.dataset)
+            validation_off_1.append(val_off_1)
             
             
 
@@ -186,6 +203,16 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
         fig2.show()
     else:
         plot(fig2, filename=os.path.join(graph_save_directory, 'Accuracy.html'))
+
+    # Off-by-one accuracy plot
+    fig3 = go.Figure()
+    fig3.add_trace(go.Scatter(x=list(range(len(training_off_1))), y=training_off_1, mode='lines', name='Training Off-by-One Accuracy'))
+    fig3.add_trace(go.Scatter(x=list(range(len(validation_off_1))), y=validation_off_1, mode='lines', name='Validation Off-by-One Accuracy'))
+    fig3.update_layout(title="Training and Validation Off-by-One Accuracy Over Time", xaxis_title="Epoch", yaxis_title="Off-by-One Accuracy")
+    if graph_save_directory is None:
+        fig3.show()
+    else:
+        plot(fig3, filename=os.path.join(graph_save_directory, 'Off_by_One_Accuracy.html'))
 
 def test_best(test_loader, best_filename):
     pass
