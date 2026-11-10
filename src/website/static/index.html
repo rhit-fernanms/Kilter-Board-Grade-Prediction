@@ -18,6 +18,16 @@
             <image href="../images/bigHolds.png"></image>
             <image href="../images/smallHolds.png"></image>
         </svg>
+        <form action="/getPrediction" method="post">
+            <input type="hidden" id="climb_string" name="climb_string">
+            <label for="angle">Angle: </label>
+            <input type="text" id="angle" name="angle">
+            <br>
+            <input type="submit" id="submitClimbButton">
+        </form>
+        <div id="predictionContainer">
+            The prediction is: <span id="prediction"></span>
+        </div>
         <script src="script.js" async defer></script>
     </body>
 </html>

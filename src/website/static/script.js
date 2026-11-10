@@ -554,3 +554,32 @@ document.addEventListener("DOMContentLoaded", new function() {
         svg.appendChild(circle);
     }
 })
+
+// Source - https://stackoverflow.com/a/73915781
+// Posted by SuperStormer, modified by community. See post 'Timeline' for change history
+// Retrieved 2026-11-06, License - CC BY-SA 4.0
+
+let form = document.querySelector("form");
+
+form.addEventListener("submit", function(event){
+    event.preventDefault();
+    let angle = document.getElementById("angle").value;
+    let formData = {
+        "climb_string": getClimbString(),
+        "angle": angle
+    }
+    const response = fetch("/getPrediction", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Response status: ${response.status}`);
+    }
+
+    const result = response.json();
+    console.log(result);
+});
