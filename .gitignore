@@ -1,5 +1,8 @@
-# Databases
+# Data files
 data/
+
+# Models
+*.pth
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
