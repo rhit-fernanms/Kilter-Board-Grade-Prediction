@@ -39,7 +39,7 @@ def collect_data(data_dir, preprocess: torchvision.transforms.Compose):
         i += 1
         if i % 1000 == 0:
             print(f'{i} images processed')
-        if i == 10000: # Stop at 10000 images to save memory
+        if i == 12000: # Stop at 12000 images to save memory
             break
     
     # Shuffle data before splitting
@@ -176,8 +176,8 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
         else:
             best_marker = ''
 
-        if epoch % (num_epochs / 10) == 0:
-            print(f'Epoch [{epoch}/{num_epochs}], Train Loss: {avg_loss:.5f}, Val Loss: {val_loss:.5f}{best_marker}, Train Acc: {train_acc:.5f}, Validation Acc: {val_acc:.5f}')
+        # if epoch % (num_epochs / 10) == 0:
+        print(f'Epoch [{epoch}/{num_epochs}], Train Loss: {avg_loss:.5f}, Val Loss: {val_loss:.5f}{best_marker}, Train Acc: {train_acc:.5f}, Validation Acc: {val_acc:.5f}')
 
     torch.save(best_model, checkpoint_path)
     total_time = time.time() - training_start
