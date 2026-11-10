@@ -4,6 +4,8 @@ import resvg_py
 import re
 import time
 
+NUM_IMAGES = None
+
 image_1 = './product_layout_images/45-1.png' 
 image_2 = './product_layout_images/46-1.png'  
 
@@ -543,9 +545,11 @@ with open('climbs_with_headers.csv', mode='r', newline='', encoding='utf-8') as 
             f.write(png_bytes)
         
         c += 1
-        if c % 100 == 0:
-            temp_time = time.time()
-            time_per_100 = temp_time - now_time
-            now_time = time.time()
-            print(f"Images {100 * (c / 100 - 1)} to {c}: {time_per_100}")
+        if NUM_IMAGES is not None and c >= NUM_IMAGES:
+            break
+        # if c % 100 == 0:
+        #     temp_time = time.time()
+        #     time_per_100 = temp_time - now_time
+        #     now_time = time.time()
+        #     print(f"Images {100 * (c / 100 - 1)} to {c}: {time_per_100}")
 
