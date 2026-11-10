@@ -521,7 +521,7 @@ def create_kilterboard_png(holdSequence):
 
 image_dir = "./data/images/"
 header = True
-c = 0
+c = 1
 with open('climbs_with_headers.csv', mode='r', newline='', encoding='utf-8') as file:
     reader = csv.reader(file)
     now_time = time.time()
