@@ -526,6 +526,35 @@ function getClimbString() {
     return climbString;
 }
 
+function clearBoard() {
+    document
+    .getElementById("climbSvg")
+    .querySelectorAll('circle[stroke-opacity="1"]')
+    .forEach((circleElement) => {
+        circleElement.setAttribute("stroke", roleColors[16]);
+        circleElement.setAttribute("stroke-opacity", 0);
+    })
+}
+
+function applyClimbString() {
+    clearBoard();
+    let climbStringInput = document.getElementById("climbString").value;
+    // Source - https://stackoverflow.com/a/6259536
+    // Posted by alex, modified by community. See post 'Timeline' for change history
+    // Retrieved 2026-11-09, License - CC BY-SA 4.0
+    var chunks = [];
+    for (var i = 0, charsLength = climbStringInput.length; i < charsLength; i += 8) {
+        chunks.push(climbStringInput.substring(i, i + 8));
+    }
+    for(let chunk of chunks) {
+        let holdId = chunk.substring(0, 5)
+        let holdType = chunk.substring(6,8)
+        let holdElement = document.getElementById("hold-" + holdId);
+        holdElement.setAttribute("stroke", roleColors[holdType]);
+        holdElement.setAttribute("stroke-opacity", 1);
+    }
+}
+
 document.addEventListener("DOMContentLoaded", new function() {
     let svg = document.getElementById("climbSvg");
     const imageWidth = 1080;
@@ -559,16 +588,15 @@ document.addEventListener("DOMContentLoaded", new function() {
 // Posted by SuperStormer, modified by community. See post 'Timeline' for change history
 // Retrieved 2026-11-06, License - CC BY-SA 4.0
 
-let form = document.querySelector("form");
+let submitButton = document.getElementById("submitClimbButton");
 
-form.addEventListener("submit", function(event){
-    event.preventDefault();
+submitButton.addEventListener("click", async function(){
     let angle = document.getElementById("angle").value;
     let formData = {
         "climb_string": getClimbString(),
         "angle": angle
     }
-    const response = fetch("/getPrediction", {
+    const response = await fetch("/getPrediction", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -580,6 +608,8 @@ form.addEventListener("submit", function(event){
       throw new Error(`Response status: ${response.status}`);
     }
 
-    const result = response.json();
-    console.log(result);
+    const result = await response.json();
+    console.log(result.output);
+    let predictionElement = document.getElementById("prediction");
+    predictionElement.innerText = result.output;
 });

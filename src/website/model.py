@@ -3,6 +3,32 @@ import numpy as np
 import os
 from PIL import Image
 
+difficulties = {
+  10: "4a",
+  11: "4b",
+  12: "4c",
+  13: "5a",
+  14: "5b",
+  15: "5c",
+  16: "6a",
+  17: "6a+",
+  18: "6b",
+  19: "6b+",
+  20: "6c",
+  21: "6c+",
+  22: "7a",
+  23: "7a+",
+  24: "7b",
+  25: "7b+",
+  26: "7c",
+  27: "7c+",
+  28: "8a",
+  29: "8a+",
+  30: "8b",
+  31: "8b+",
+  32: "8c",
+  33: "8c+",
+}
 
 class ResNetTransfer(torch.nn.Module):
     def __init__(self, resnetmodel):
@@ -29,17 +55,17 @@ class ResNetTransfer(torch.nn.Module):
         return y
 
 preprocess = torchvision.transforms.Compose([
+    torchvision.transforms.Resize((224, 224)),
     torchvision.transforms.ToTensor(),
+    torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
 # Load pretrained ResNet model
 resnet50 = torchvision.models.resnet50(weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V1)
-model_path = "trained_models/resnet_finetuned.pth"
+model_path = "trained_models/resnet_finetuned_FULL2.pth"
 model = ResNetTransfer(resnet50)
-print("loading model")
 model.load_state_dict(torch.load(model_path, weights_only=True, map_location=torch.device("cpu")))
 model.eval()
-print("model loaded!")
 
 def collect_data(filename, angle, preprocess: torchvision.transforms.Compose):
     images, angles = [], []
@@ -50,13 +76,16 @@ def collect_data(filename, angle, preprocess: torchvision.transforms.Compose):
     angles = np.stack(angles)
     return torch.from_numpy(images), torch.from_numpy(angles)
 
+def get_prediction(tensor):
+    index = int(torch.argmax(tensor, dim=1).item())
+    return difficulties.get(index + 10)
+
 def pass_image(filename, angle):
     image_data, angle_data = collect_data(filename, angle, preprocess)
-    print("after collect_data")
-    print(f"{image_data.size()}, {angle_data.size()}")
     output = model(image_data, angle_data)
-    return output
+    print(f"prediction: {output}")
+    return get_prediction(output)
 
-o = pass_image("temp/temp_climb_png.png", 0)
-print(o)
+# o = pass_image("temp/temp_climb_png.png", 0)
+# print(o)
     

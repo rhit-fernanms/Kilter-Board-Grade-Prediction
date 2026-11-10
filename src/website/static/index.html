@@ -18,13 +18,22 @@
             <image href="../images/bigHolds.png"></image>
             <image href="../images/smallHolds.png"></image>
         </svg>
-        <form action="/getPrediction" method="post">
+        <br>
+        <h3>Board functions</h3>
+        <button id="clearBoard" onclick="clearBoard()">Clear board</button>
+        <br>
+        <label for="climbString">Climb string:</label>
+        <input type="text" id="climbString" name="climbString">
+        <button id="applyClimbString" onclick="applyClimbString()">Apply climb string</button>
+        <hr>
+        <h3>Prediction functionality</h3>
+        <!-- <form action="/getPrediction" method="post"> -->
             <input type="hidden" id="climb_string" name="climb_string">
             <label for="angle">Angle: </label>
             <input type="text" id="angle" name="angle">
             <br>
-            <input type="submit" id="submitClimbButton">
-        </form>
+            <button id="submitClimbButton">Submit prediction</button>
+        <!-- </form> -->
         <div id="predictionContainer">
             The prediction is: <span id="prediction"></span>
         </div>
