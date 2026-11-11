@@ -592,9 +592,11 @@ let submitButton = document.getElementById("submitClimbButton");
 
 submitButton.addEventListener("click", async function(){
     let angle = document.getElementById("angle").value;
+    let modelType = document.getElementById("modelType").value;
     let formData = {
         "climb_string": getClimbString(),
-        "angle": angle
+        "angle": angle,
+        "model_type": modelType
     }
     const response = await fetch("/getPrediction", {
         method: "POST",

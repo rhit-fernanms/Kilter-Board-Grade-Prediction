@@ -60,12 +60,18 @@ preprocess = torchvision.transforms.Compose([
     torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-# Load trained model
-resnet50 = torchvision.models.resnet50(weights=None)
-model_path = "trained_models/resnet_finetuned_regressor_double_FULL.pth"
-model = ResNetTransfer(copy.deepcopy(resnet50))
-model.load_state_dict(torch.load(model_path, weights_only=True, map_location=torch.device("cpu")))
-model.eval()
+# Load pretrained ResNet model
+resnet50 = torchvision.models.resnet50(weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V1)
+
+model_path_classifier_1layer = "trained_models/resnet_finetuned_FULL2.pth"
+model_classifier_1layer = ResNetTransfer(resnet50)
+model_classifier_1layer.load_state_dict(torch.load(model_path_classifier_1layer, weights_only=True, map_location=torch.device("cpu")))
+model_classifier_1layer.eval()
+
+model_path_classifier_100climbs = "trained_models/resnet_finetuned.pth"
+model_classifier_100climbs = ResNetTransfer(resnet50)
+model_classifier_100climbs.load_state_dict(torch.load(model_path_classifier_100climbs, weights_only=True, map_location=torch.device("cpu")))
+model_classifier_100climbs.eval()
 
 def collect_data(filename, angle, preprocess: torchvision.transforms.Compose):
     images, angles = [], []
@@ -80,10 +86,14 @@ def get_prediction(tensor):
     index = int(tensor.round().item())
     return difficulties.get(index + 10)
 
-def pass_image(filename, angle):
+def pass_image(filename, angle, model_type_string):
     image_data, angle_data = collect_data(filename, angle, preprocess)
-    with torch.no_grad():
-        output = model(image_data, angle_data)
+    if model_type_string == "classifier_100":
+        output = model_classifier_100climbs(image_data, angle_data)
+    elif model_type_string == "classifier1":
+        output = model_classifier_1layer(image_data, angle_data)
+    else:
+        output = model_classifier_1layer(image_data, angle_data)
     print(f"prediction: {output}")
     return get_prediction(output)
 
