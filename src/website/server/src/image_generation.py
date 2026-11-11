@@ -489,8 +489,8 @@ role_colors = {
     "15": "#FFA500"
 }
 
-image_1 = './static/public/images/bigHolds.png' 
-image_2 = './static/public/images/smallHolds.png' 
+image_1 = './static/images/bigHolds.png' 
+image_2 = './static/images/smallHolds.png' 
 scale = 0.2
 
 def split_string(s):
