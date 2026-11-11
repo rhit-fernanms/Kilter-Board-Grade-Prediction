@@ -57,6 +57,7 @@ class ImageDataset(Dataset):
 def collect_data(data_dir, preprocess: torchvision.transforms.Compose):
     images, angles, grades = [], [], []
     total_grade_counts = [0 for i in range(23)]
+    grade_names = [difficulties[i] for i in range(10,33)]
     i = 0
     for filename in sorted(os.listdir(data_dir)):
         # Images are titled 'id=[id]_angle=[angle]_grade=[grade].png'
@@ -78,7 +79,7 @@ def collect_data(data_dir, preprocess: torchvision.transforms.Compose):
         if i == 12000: # Stop at 12000 images to save memory
             break
 
-    data = {"counts": total_grade_counts, "grades": difficulties}
+    data = {"counts": total_grade_counts, "grades": grade_names}
     df = pd.DataFrame(data)
     hist = px.histogram(
         df,
