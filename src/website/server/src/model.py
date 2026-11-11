@@ -176,7 +176,7 @@ def get_prediction(tensor, isClassifier):
     if isClassifier:
         index = int(torch.argmax(tensor, dim=1).item())
     else:
-        index = int(tensor.round().item())
+        index = max([0, int(tensor.round().item())])
     return difficulties.get(index + 10)
 
 def pass_image(filename, angle, model_type_string):
