@@ -1,9 +1,10 @@
 from flask import Flask, render_template, request, jsonify
+import os
 
 from model import pass_image
 import image_generation
 
-app = Flask(__name__, static_url_path='', static_folder='static', template_folder='static')
+app = Flask(__name__, static_url_path='')
 
 @app.get('/')
 def handle_index():
@@ -23,4 +24,5 @@ def handle_get_():
     response = {"output": output}
     return jsonify(response)
 
-app.run(debug=True)
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))

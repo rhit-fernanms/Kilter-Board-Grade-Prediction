@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": "public",
+    "public": "server/src/static",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -9,7 +9,10 @@
     "rewrites": [
       {
         "source": "**",
-        "destination": "/index.html"
+        "run": {
+          "serviceId": "flask-fire",
+          "region": "us-central1"
+        }
       }
     ]
   }

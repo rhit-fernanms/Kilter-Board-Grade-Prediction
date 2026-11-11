@@ -1,6 +1,6 @@
 import torch, torchvision
 import numpy as np
-import os
+import os, copy
 from PIL import Image
 
 difficulties = {
@@ -44,14 +44,14 @@ class ResNetTransfer(torch.nn.Module):
                                             resnetmodel.layer4,
                                             resnetmodel.avgpool)
         # 2048 from the resnet convolution and 1 from the angles
-        self.classifier = torch.nn.Sequential(torch.nn.Linear(2049, 23))
+        self.regressor = torch.nn.Sequential(torch.nn.Linear(2049, 256),
+                                             torch.nn.Linear(256, 1))
     
     def forward(self, X, angles):
         r = self.resnet(X)
         f = torch.flatten(r, 1)
-        print(f.size())
         f = torch.cat([f, angles], dim=1)
-        y = self.classifier(f)
+        y = self.regressor(f)
         return y
 
 preprocess = torchvision.transforms.Compose([
@@ -60,10 +60,10 @@ preprocess = torchvision.transforms.Compose([
     torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-# Load pretrained ResNet model
-resnet50 = torchvision.models.resnet50(weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V1)
-model_path = "trained_models/resnet_finetuned_FULL2.pth"
-model = ResNetTransfer(resnet50)
+# Load trained model
+resnet50 = torchvision.models.resnet50(weights=None)
+model_path = "trained_models/resnet_finetuned_regressor_double_FULL.pth"
+model = ResNetTransfer(copy.deepcopy(resnet50))
 model.load_state_dict(torch.load(model_path, weights_only=True, map_location=torch.device("cpu")))
 model.eval()
 
@@ -77,12 +77,13 @@ def collect_data(filename, angle, preprocess: torchvision.transforms.Compose):
     return torch.from_numpy(images), torch.from_numpy(angles)
 
 def get_prediction(tensor):
-    index = int(torch.argmax(tensor, dim=1).item())
+    index = int(tensor.round().item())
     return difficulties.get(index + 10)
 
 def pass_image(filename, angle):
     image_data, angle_data = collect_data(filename, angle, preprocess)
-    output = model(image_data, angle_data)
+    with torch.no_grad():
+        output = model(image_data, angle_data)
     print(f"prediction: {output}")
     return get_prediction(output)
 
