@@ -5,8 +5,41 @@ from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler, BatchSa
 from random import shuffle
 import copy
 
+import plotly.graph_objects as go
+from plotly.offline import plot
+import time
+import plotly.express as px
+import pandas as pd
+
 # Hyperparameters
 BATCH_SIZE = 64
+
+difficulties = {
+  10: "4a",
+  11: "4b",
+  12: "4c",
+  13: "5a",
+  14: "5b",
+  15: "5c",
+  16: "6a",
+  17: "6a+",
+  18: "6b",
+  19: "6b+",
+  20: "6c",
+  21: "6c+",
+  22: "7a",
+  23: "7a+",
+  24: "7b",
+  25: "7b+",
+  26: "7c",
+  27: "7c+",
+  28: "8a",
+  29: "8a+",
+  30: "8b",
+  31: "8b+",
+  32: "8c",
+  33: "8c+",
+}
 
 class ImageDataset(Dataset):
     def __init__(self, images, angles, grades):
@@ -23,6 +56,8 @@ class ImageDataset(Dataset):
 
 def collect_data(data_dir, preprocess: torchvision.transforms.Compose):
     images, angles, grades = [], [], []
+    total_grade_counts = [0 for i in range(23)]
+    grade_names = [difficulties[i] for i in range(10,33)]
     i = 0
     for filename in sorted(os.listdir(data_dir)):
         # Images are titled 'id=[id]_angle=[angle]_grade=[grade].png'
@@ -32,6 +67,8 @@ def collect_data(data_dir, preprocess: torchvision.transforms.Compose):
 
         angles.append(int(angle))
         grades.append(int(grade) - 10) # Standardize to [0, 22]
+
+        total_grade_counts[int(grade)-10] += 1
         
         img = Image.open(os.path.join(data_dir, filename)).convert('RGB')
         images.append(preprocess(img).numpy())
@@ -41,6 +78,20 @@ def collect_data(data_dir, preprocess: torchvision.transforms.Compose):
             print(f'{i} images processed')
         if i == 12000: # Stop at 12000 images to save memory
             break
+
+    data = {"counts": total_grade_counts, "grades": grade_names}
+    df = pd.DataFrame(data)
+    hist = px.histogram(
+        df,
+        x="grades",                # Column to plot
+        y="counts",
+        title="Distribution of Climbs Grades",
+        labels={"counts": "Number of Climbs"}  # Axis label
+    )
+    plot(hist, filename=os.path.join("./", 'grade_dist.html'))
+    
+    
+
     
     # Shuffle data before splitting
     shuffled = list(zip(images, angles, grades))
@@ -81,9 +132,6 @@ def collect_data(data_dir, preprocess: torchvision.transforms.Compose):
     return train_loader, val_loader, test_loader
     
     
-import plotly.graph_objects as go
-from plotly.offline import plot
-import time
     
 # Taken from Lesson 19
 def train_model(model, train_loader, val_loader, criterion, optimizer, device, num_epochs, checkpoint_path, graph_save_directory=None):
