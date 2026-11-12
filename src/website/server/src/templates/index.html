@@ -18,7 +18,9 @@
             <image href="../images/bigHolds.png"></image>
             <image href="../images/smallHolds.png"></image>
         </svg>
-        <br>
+        <h3>Legend</h3>
+        <span style="color: #00DD00">Starting holds</span>, <span style="color: #00FFFF">hand holds</span>, <span style="color: #FF00FF">end holds</span>, <span style="color: #FFA500">foot holds</span>
+        <hr>
         <h3>Board functions</h3>
         <button id="clearBoard" onclick="clearBoard()">Clear board</button>
         <br>
@@ -28,6 +30,15 @@
         <hr>
         <h3>Prediction functionality</h3>
         <!-- <form action="/getPrediction" method="post"> -->
+            <label for="modelType">Select a model</label>
+            <select id="modelType" name="modelType">
+                <option value="classifier_100">Classifier (trained on 100 climbs)</option>
+                <option value="classifier1">Classifier (1 layer)</option>
+                <option value="regressor1">Regressor (1 layer)</option>
+                <option value="classifier2">Classifier (2 layers)</option>
+                <option value="regressor2" selected>Regressor (2 layers)</option>
+            </select>
+            <br>
             <input type="hidden" id="climb_string" name="climb_string">
             <label for="angle">Angle: </label>
             <input type="text" id="angle" name="angle">
@@ -39,4 +50,10 @@
         </div>
         <script src="script.js" async defer></script>
     </body>
+    <style>
+        h3 {
+            padding: 0;
+            margin: 0;
+        }
+    </style>
 </html>

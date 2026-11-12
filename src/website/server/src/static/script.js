@@ -590,11 +590,15 @@ document.addEventListener("DOMContentLoaded", new function() {
 
 let submitButton = document.getElementById("submitClimbButton");
 
-submitButton.addEventListener("click", async function(){
+submitButton.addEventListener("click", async function(){    
+    let predictionElement = document.getElementById("prediction");
+    predictionElement.innerText = "predicting..."
     let angle = document.getElementById("angle").value;
+    let modelType = document.getElementById("modelType").value;
     let formData = {
         "climb_string": getClimbString(),
-        "angle": angle
+        "angle": angle,
+        "model_type": modelType
     }
     const response = await fetch("/getPrediction", {
         method: "POST",
@@ -610,6 +614,5 @@ submitButton.addEventListener("click", async function(){
 
     const result = await response.json();
     console.log(result.output);
-    let predictionElement = document.getElementById("prediction");
     predictionElement.innerText = result.output;
 });
